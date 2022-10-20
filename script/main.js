@@ -3,6 +3,7 @@ const gl = canvas.getContext('webgl')
 if (!gl) {
     alert('Gl context is null')
 } else {
-    const glController = new GlController(gl);
+    const camera = new Camera(canvas)
+    const glController = new GlController(gl, camera);
     glController.draw()
 }

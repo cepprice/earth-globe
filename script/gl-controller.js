@@ -1,4 +1,4 @@
-const { mat4 } = glMatrix
+const { vec3, mat4 } = glMatrix
 
 const VERTEX_SHADER_SOURCE = `
 precision mediump float;
@@ -39,25 +39,27 @@ class GlController {
     #gl
     #program
     #sphere
+    #camera
 
     DrawModes = {
         COLORED_FACES: new DrawMode(
-            gl.TRIANGLES,
+            WebGLRenderingContext.TRIANGLES,
             () => this.#sphere.getTriangleColors(),
             () => this.#sphere.getTriangleIndices()),
         LINES: new DrawMode(
-            gl.LINES,
+            WebGLRenderingContext.LINES,
             () => this.#sphere.getLineColors(),
             () => this.#sphere.getLineIndices())
     }
 
-    #drawMode = this.DrawModes.COLORED_FACES
-    // #drawMode = this.DrawModes.LINES
+    // #drawMode = this.DrawModes.COLORED_FACES
+    #drawMode = this.DrawModes.LINES
 
-    constructor(gl) {
+    constructor(gl, camera) {
         this.#gl = gl
         this.#program = gl.createProgram()
         this.#sphere = new Sphere(20, 20)
+        this.#camera = camera
         this.#init()
     }
 
@@ -68,20 +70,21 @@ class GlController {
         const uniformMatrixLocation = gl.getUniformLocation(this.#program, 'uMatrix')
 
         const vpMatrix = mat4.create()
-
         const projectionMatrix = mat4.create()
-        const fovRadians = 60 * Math.PI / 180
-        const aspect = gl.canvas.width / gl.canvas.height
-        mat4.perspective(projectionMatrix, fovRadians, aspect, 1e-4, 1e4)
-
         const viewMatrix = mat4.create()
-        mat4.translate(viewMatrix, viewMatrix, [0, 0, 2.5])
-        mat4.invert(viewMatrix, viewMatrix)
 
         const animate = () => {
             requestAnimationFrame(animate)
 
-            mat4.rotate(viewMatrix, viewMatrix, Math.PI / 360, [1, 1, 1])
+            const eye = vec3.fromValues(0, 0, 1 + this.#camera.getHeightKm() / MapUtils.EARTH_RADIUS_KM)
+            mat4.lookAt(viewMatrix, eye, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+            mat4.rotateX(viewMatrix, viewMatrix, MapUtils.toRadians(this.#camera.getLatitude()))
+            mat4.rotateY(viewMatrix, viewMatrix, -MapUtils.toRadians(this.#camera.getLongitude()))
+
+            const fovRadians = MapUtils.toRadians(this.#camera.getFov())
+            const aspect = gl.canvas.width / gl.canvas.height
+            mat4.perspective(projectionMatrix, fovRadians, aspect, 1e-4, 1e4)
+
             mat4.multiply(vpMatrix, projectionMatrix, viewMatrix)
 
             gl.uniformMatrix4fv(uniformMatrixLocation, false, vpMatrix)
