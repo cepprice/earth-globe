@@ -1,11 +1,12 @@
 class Camera {
 
-    static DEFAULT_ZOOM = 2
+    static MIN_ZOOM = 2
+    static MAX_ZOOM = 22
     static DEFAULT_FOV = 60
 
     #canvas
 
-    #zoom = Camera.DEFAULT_ZOOM
+    #zoom = Camera.MIN_ZOOM
     #lat = 0
     #lon = 0
     #heightKm
@@ -13,14 +14,14 @@ class Camera {
 
     constructor(canvas) {
         this.#canvas = canvas
-        this.#heightKm = this.#computeHeightKmFromZoom()
+        this.#updateHeightKmFromZoom()
         this.#addMouseListeners()
     }
 
-    #computeHeightKmFromZoom() {
+    #updateHeightKmFromZoom() {
         const tilesPerCanvas = MapUtils.CANVAS_SIZE / MapUtils.TILE_SIZE
         const tileWidthKm = MapUtils.getTileWidthKm(this.#zoom, this.#lat, this.#lon)
-        return (tilesPerCanvas * tileWidthKm / 2) / Math.tan(MapUtils.toRadians(this.#fov / 2))
+        this.#heightKm = (tilesPerCanvas * tileWidthKm / 2) / Math.tan(MapUtils.toRadians(this.#fov / 2))
     }
 
     #addMouseListeners() {
@@ -56,6 +57,12 @@ class Camera {
             this.#lon = MapUtils.checkLongitude(this.#lon - dx * this.#heightKm / 400)
 
             mouseCoords = newMouseCoords;
+        })
+
+        this.#canvas.addEventListener("wheel", (event) => {
+            this.#zoom += -event.deltaY * 0.025
+            this.#zoom = Math.max(Camera.MIN_ZOOM, Math.min(Camera.MAX_ZOOM, this.#zoom))
+            this.#updateHeightKmFromZoom()
         })
     }
 
