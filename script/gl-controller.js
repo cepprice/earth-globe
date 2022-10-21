@@ -99,6 +99,8 @@ class GlController {
         this.#updateBuffers()
         this.#gl.useProgram(this.#program)
         this.#gl.enable(this.#gl.DEPTH_TEST)
+        this.#gl.enable(this.#gl.CULL_FACE)
+        this.#gl.cullFace(this.#gl.BACK)
     }
 
     #attachShaders() {
