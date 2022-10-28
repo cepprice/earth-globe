@@ -1,19 +1,9 @@
-const MIN_STACK_COUNT = 4
-const MIN_SECTOR_COUNT = 6
-
-const MAX_STACK_COUNT = 100
-const MAX_SECTOR_COUNT = 100
-
-const STACK_ANGLE_RANGE = Math.PI
-const SECTOR_ANGLE_RANGE = Math.PI * 2
-
 const FACE_COLORS_COUNT = 32
 const LINE_COLOR = [0.1, 0.61, 0.38, 1]
 
 class Sphere {
 
-    #stackCount
-    #sectorCount
+    static ZOOM = 6
 
     #vertices
 
@@ -23,14 +13,9 @@ class Sphere {
     #triangleIndices
     #lineIndices
 
-    constructor(stackCount, sectorCount) {
-        this.setParams(stackCount, sectorCount)
-    }
+    #textureCoordinates
 
-    setParams(stackCount, sectorCount) {
-        const checkValue = (value, min, max) => Math.min(max, Math.max(min, value))
-        this.#stackCount = checkValue(stackCount, MIN_STACK_COUNT, MAX_STACK_COUNT)
-        this.#sectorCount = checkValue(sectorCount, MIN_SECTOR_COUNT, MAX_SECTOR_COUNT)
+    constructor() {
         this.#calculateVertexData()
     }
 
@@ -54,48 +39,58 @@ class Sphere {
         return this.#lineIndices
     }
 
+    getTextureCoordinates() {
+        return this.#textureCoordinates
+    }
+
     #calculateVertexData() {
         this.#vertices = []
         this.#triangleColors = []
         this.#lineColors = []
         this.#triangleIndices = []
         this.#lineIndices = []
+        this.#textureCoordinates = []
 
         let vertexIndex = 0
         const faceColors = this.#generateFaceColors()
+        const tilesCount = 1 << Sphere.ZOOM
 
-        const topPoleFaceDataComputer = new TopPoleFaceDataComputer()
-        const twoTriangleFaceDataComputer = new TwoTriangleFaceDataComputer()
-        const bottomPoleFaceDataComputer = new BottomPoleFaceDataComputer()
-        const getFaceDataComputer = (topPole, bottomPole) => {
-            if (topPole) {
-                return topPoleFaceDataComputer
-            } else if (bottomPole) {
-                return bottomPoleFaceDataComputer
+        for (let tileY = -1; tileY <= tilesCount; tileY++) {
+
+            let faceDataComputer
+            let topLat
+            let bottomLat
+
+            if (tileY === -1) {
+                faceDataComputer = new TopPoleFaceDataComputer()
+                topLat = 90
+                bottomLat = MapUtils.getLatitudeFromTile(Sphere.ZOOM, 0)
+            } else if (tileY === tilesCount) {
+                faceDataComputer = new BottomPoleFaceDataComputer()
+                topLat = MapUtils.getLatitudeFromTile(Sphere.ZOOM, tilesCount)
+                bottomLat = -90
             } else {
-                return twoTriangleFaceDataComputer
+                faceDataComputer = new TwoTriangleFaceDataComputer()
+                topLat = MapUtils.getLatitudeFromTile(Sphere.ZOOM, tileY)
+                bottomLat = MapUtils.getLatitudeFromTile(Sphere.ZOOM, tileY + 1)
             }
-        }
 
-        for (let stack = 0; stack < this.#stackCount; stack++) {
+            for (let tileX = 0; tileX < tilesCount; tileX++) {
 
-            const topPoleTriangle = stack === 0
-            const bottomPoleTriangle = stack + 1 === this.#stackCount
-            const faceDataComputer = getFaceDataComputer(topPoleTriangle, bottomPoleTriangle)
-
-            const topStackAngle = STACK_ANGLE_RANGE * (stack / this.#stackCount)
-            const bottomStackAngle = STACK_ANGLE_RANGE * ((stack + 1) / this.#stackCount)
-
-            for (let sector = 0; sector < this.#sectorCount; sector++) {
-
-                const leftSectorAngle = SECTOR_ANGLE_RANGE * (sector / this.#sectorCount)
-                const rightSectorAngle = SECTOR_ANGLE_RANGE * ((sector + 1) / this.#sectorCount)
+                const leftLon = MapUtils.getLongitudeFromTile(Sphere.ZOOM, tileX);
+                const rightLon = MapUtils.getLongitudeFromTile(Sphere.ZOOM, tileX + 1);
 
                 const faceColor = faceColors[Math.round(Math.random() * 100) % FACE_COLORS_COUNT]
 
-                faceDataComputer.addVertices(topStackAngle, bottomStackAngle, leftSectorAngle, rightSectorAngle, this.#vertices)
+                faceDataComputer.addVertices(
+                    MapUtils.toRadians(90 - topLat),
+                    MapUtils.toRadians(90 - bottomLat),
+                    MapUtils.toRadians(leftLon + 180),
+                    MapUtils.toRadians(rightLon + 180),
+                    this.#vertices)
                 faceDataComputer.addColors(this.#triangleColors, this.#lineColors, faceColor, LINE_COLOR)
                 faceDataComputer.addIndices(this.#triangleIndices, this.#lineIndices, vertexIndex)
+                faceDataComputer.addTextureCoordinates(topLat, bottomLat, leftLon, rightLon, this.#textureCoordinates)
 
                 vertexIndex += faceDataComputer.getVertexCount()
             }

@@ -26,6 +26,14 @@ class FaceDataComputer {
         FaceDataComputer.#throwException()
     }
 
+    addTextureCoordinates(topLat, bottomLat, leftLon, rightLon, textureCoordinates) {
+        FaceDataComputer.#throwException()
+    }
+
+    _addVertexNonTextureCoordinates(textureCoordinates) {
+        textureCoordinates.push(-1, -1)
+    }
+
     static #throwException() {
         throw new Error("Abstract method not implemented")
     }
@@ -50,6 +58,12 @@ class TopPoleFaceDataComputer extends FaceDataComputer {
 
         triangleIndices.push(top, bottomLeft, bottomRight)
         lineIndices.push(top, bottomLeft)
+    }
+
+    addTextureCoordinates(topLat, bottomLat, leftLon, rightLon, textureCoordinates) {
+        this._addVertexNonTextureCoordinates(textureCoordinates)
+        this._addVertexNonTextureCoordinates(textureCoordinates)
+        this._addVertexNonTextureCoordinates(textureCoordinates)
     }
 }
 
@@ -78,6 +92,19 @@ class TwoTriangleFaceDataComputer extends FaceDataComputer {
         lineIndices.push(topLeft, bottomLeft)
         lineIndices.push(topLeft, topRight)
     }
+
+    addTextureCoordinates(topLat, bottomLat, leftLon, rightLon, textureCoordinates) {
+        TwoTriangleFaceDataComputer.#addVertexTextureCoordinates(topLat, leftLon, textureCoordinates)
+        TwoTriangleFaceDataComputer.#addVertexTextureCoordinates(bottomLat, leftLon, textureCoordinates)
+        TwoTriangleFaceDataComputer.#addVertexTextureCoordinates(topLat, rightLon, textureCoordinates)
+        TwoTriangleFaceDataComputer.#addVertexTextureCoordinates(bottomLat, rightLon, textureCoordinates)
+    }
+
+    static #addVertexTextureCoordinates(lat, lon, textureCoordinates) {
+        const u = (lon + 180) / 360
+        const v = (lat + MapUtils.MAX_LATITUDE) / (2 * MapUtils.MAX_LATITUDE)
+        textureCoordinates.push(u, v)
+    }
 }
 
 class BottomPoleFaceDataComputer extends FaceDataComputer {
@@ -101,5 +128,11 @@ class BottomPoleFaceDataComputer extends FaceDataComputer {
 
         lineIndices.push(topLeft, bottom)
         lineIndices.push(topLeft, topRight)
+    }
+
+    addTextureCoordinates(topLat, bottomLat, leftLon, rightLon, textureCoordinates) {
+        this._addVertexNonTextureCoordinates(textureCoordinates)
+        this._addVertexNonTextureCoordinates(textureCoordinates)
+        this._addVertexNonTextureCoordinates(textureCoordinates)
     }
 }
