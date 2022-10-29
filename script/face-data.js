@@ -102,7 +102,7 @@ class TwoTriangleFaceDataComputer extends FaceDataComputer {
 
     static #addVertexTextureCoordinates(lat, lon, textureCoordinates) {
         const u = (lon + 180) / 360
-        const v = (lat + MapUtils.MAX_LATITUDE) / (2 * MapUtils.MAX_LATITUDE)
+        const v = (Math.log(Math.tan(MapUtils.toRadians(lat) / 2 + Math.PI / 4)) + Math.PI) / (2 * Math.PI)
         textureCoordinates.push(u, v)
     }
 }
